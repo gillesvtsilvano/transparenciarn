@@ -1,31 +1,8 @@
 import requests
+from orgao import OrgaoRN
+from servidor import ServidorRN
 
-class OrgaoRN:
-    def __init__(self, name, id, bruto, total, patronal):
-        self.name = name
-        self.id = id
-        self.bruto = bruto
-        self.patronal = patronal
-        self.total = total
-        self.servidores = []
 
-    def __repr__(self):
-        return '{}({})'.format(self.name, self.id)
-
-class ServidorRN:
-    def __init__(self, nome, cargo, ch, remuneracao_base, remuneracao_outras,
-    previdencia, ir, redutor, descontos_outros, liquido, orgao):
-        self.nome = nome
-        self.cargo = cargo
-        self.ch = ch
-        self.remuneracao_base = remuneracao_base
-        self.remuneracao_outras = remuneracao_outras
-        self.previdencia = previdencia
-        self.ir = ir
-        self.redutor = redutor
-        self.descontos_outros = descontos_outros
-        self.liquido = liquido
-        self.orgao = orgao
 
 
 class TransparenciaRN:
@@ -61,7 +38,7 @@ class TransparenciaRN:
         'Dezembro': '12'
     }
 
-    def __init__(self, month, year):
+    def __init__(self, month, year, orgs=None):
         self.month = month
         self.year = year
         print('Creating HTTP Session...', end='')
@@ -75,12 +52,16 @@ class TransparenciaRN:
         self.get_orgs()
         print('Ok')
         print('Finding employees...', end='')
-        for k,v in self.orgs.items():
+        if not orgs:
+            for _,v in self.orgs.items():
 
-            print(v.name + '...', end=''),
-            self.get_org_employees(v)
-            print('Ok')
-
+                print(v.name + '...', end=''),
+                self.get_org_employees(v)
+                print('Ok')
+        else:
+            for org_name in orgs:
+                org = self.get_org(org_name)
+                self.get_org_employees(org)
 
 
     def get_token(self):
