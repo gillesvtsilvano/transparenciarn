@@ -2,9 +2,6 @@ import requests
 from orgao import OrgaoRN
 from servidor import ServidorRN
 
-
-
-
 class TransparenciaRN:
 
     # Definindo a url alvo
@@ -145,7 +142,6 @@ class TransparenciaRN:
                         data['Nome do Servidor'] = resp_lines[n][4:-5] # remove '<td>...</td>'
                         data['Cargo/Função'] = resp_lines[n + 1][4:-5]
                         data['Carga Horária'] = resp_lines[n + 2][4:-5]
-                        #print(resp_lines[n + 3][30:-5])
                         data['Remuneração do Mês'] = float(resp_lines[n + 3][30:-5].replace('.', '').replace(',', '.')
                                                            if resp_lines[n + 3][30:-5] != '' else '0.00')
                         data['Outras Remunerações'] = float(resp_lines[n + 4][30:-5].replace('.', '').replace(',', '.')
