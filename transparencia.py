@@ -54,7 +54,6 @@ class TransparenciaRN:
         print('Finding employees...', end='')
         if not orgs:
             for _,v in self.orgs.items():
-
                 print(v.name + '...', end=''),
                 self.get_org_employees(v)
                 print('Ok')
@@ -96,9 +95,12 @@ class TransparenciaRN:
                 for s in filter(lambda x: x != '', split):
                     org_name = s.split('>')[1].split('</a>')[0][:-3]
                     org_id = s.split('/')[1].split('?')[0]
-                    org_bruto = response_list[idx+1][30:-5]
-                    org_patronal = response_list[idx+2][30:-5]
-                    org_total = response_list[idx+3][30:-5]
+                    org_bruto = float(response_list[idx+1][30:-5].replace('.', '').replace(',', '.')
+                                        if response_list[idx + 1][30:-5] != '' else '0.00')
+                    org_patronal = float(response_list[idx+2][30:-5].replace('.', '').replace(',', '.')
+                                        if response_list[idx + 2][30:-5] != '' else '0.00')
+                    org_total = float(response_list[idx+3][30:-5].replace('.', '').replace(',', '.')
+                                        if response_list[idx + 3][30:-5] != '' else '0.00')
                     o = OrgaoRN(org_name, org_id, org_bruto, org_patronal, org_total)
                     self.orgs[org_name] = o
                     idx += 6
@@ -143,13 +145,21 @@ class TransparenciaRN:
                         data['Nome do Servidor'] = resp_lines[n][4:-5] # remove '<td>...</td>'
                         data['Cargo/Função'] = resp_lines[n + 1][4:-5]
                         data['Carga Horária'] = resp_lines[n + 2][4:-5]
-                        data['Remuneração do Mês'] = resp_lines[n + 3][30:-5]
-                        data['Outras Remunerações'] = resp_lines[n + 4][30:-5]
-                        data['Previdência'] = resp_lines[n + 5][30:-5]
-                        data['Imposto de Reda'] = resp_lines[n + 6][30:-5]
-                        data['Redutor ARt.37/CF'] = resp_lines[n + 7][30:-5]
-                        data['Outros Descontos'] = resp_lines[n + 8][30:-5]
-                        data['Valor Líquido'] = resp_lines[n + 9][30:-5]
+                        #print(resp_lines[n + 3][30:-5])
+                        data['Remuneração do Mês'] = float(resp_lines[n + 3][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 3][30:-5] != '' else '0.00')
+                        data['Outras Remunerações'] = float(resp_lines[n + 4][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 4][30:-5] != '' else '0.00')
+                        data['Previdência'] = float(resp_lines[n + 5][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 5][30:-5] != '' else '0.00')
+                        data['Imposto de Reda'] = float(resp_lines[n + 6][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 6][30:-5] != '' else '0.00')
+                        data['Redutor ARt.37/CF'] = float(resp_lines[n + 7][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 7][30:-5] != '' else '0.00')
+                        data['Outros Descontos'] = float(resp_lines[n + 8][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 8][30:-5] != '' else '0.00')
+                        data['Valor Líquido'] = float(resp_lines[n + 9][30:-5].replace('.', '').replace(',', '.')
+                                                           if resp_lines[n + 9][30:-5] != '' else '0.00')
                         # print(data)
                         self.orgs[org.name].servidores.append(ServidorRN(
                             data['Nome do Servidor'],
