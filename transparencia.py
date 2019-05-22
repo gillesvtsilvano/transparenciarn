@@ -89,32 +89,16 @@ class TransparenciaRN:
 
         # print(payload)
         response = self.session.post(self.url_orgs, params=payload)
-        soap = BeautifulSoup(response.txt, 'html.parser')
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-        response_list = list(filter(lambda x: len(x) > 0, [l.lstrip() for l in response.text.split('\r\n')]))
-        l = len(response_list)
-        for idx in range(l):
-            counter = -1
-            org_name = ''
-            org_id = ''
-            org_bruto = ''
-            org_patronal = ''
-            org_total = ''
+        org_values = soup.find('table').find_all('td')
+        for org, v_bruto, v_patrim, v_total in zip(*[iter(org_values)]*4):
+            self.orgs[org.string] = OrgaoRN(org.string,
+                                            str(org).split('/')[4].split('?')[0],
+                                            v_bruto.float,
+                                            v_patrim.float,
+                                            v_total.float)
 
-            split = response_list[idx].split('<td><a href="/searh/Remuneracao/RemuneracaoPorId')
-            if len(split) > 1:
-                for s in filter(lambda x: x != '', split):
-                    org_name = s.split('>')[1].split('</a>')[0][:-3]
-                    org_id = s.split('/')[1].split('?')[0]
-                    org_bruto = float(response_list[idx+1][30:-5].replace('.', '').replace(',', '.')
-                                        if response_list[idx + 1][30:-5] != '' else '0.00')
-                    org_patronal = float(response_list[idx+2][30:-5].replace('.', '').replace(',', '.')
-                                        if response_list[idx + 2][30:-5] != '' else '0.00')
-                    org_total = float(response_list[idx+3][30:-5].replace('.', '').replace(',', '.')
-                                        if response_list[idx + 3][30:-5] != '' else '0.00')
-                    o = OrgaoRN(org_name, org_id, org_bruto, org_patronal, org_total)
-                    self.orgs[org_name] = o
-                    idx += 6
         return self.orgs
 
 
@@ -135,6 +119,11 @@ class TransparenciaRN:
             field = line.split('<a href="/searh/Remuneracao/Paginados?pagina=')
             if len(field) > 1:
                 last_page = field[1].split('">')[0]
+
+        print(last_page)
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        print(str(soup.find_all('a')[-2]))
 
         employee_count = 0
         # Iter over pages
@@ -194,7 +183,7 @@ class TransparenciaRN:
 
     def get_org(self, s):
         return self.filter_orgs_by_str(s).pop()
-8
+
 
     def filter_orgs_by_str(self, s):
         return [self.orgs[org] for org in self.orgs.keys() if s in org]
