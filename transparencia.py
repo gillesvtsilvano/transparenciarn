@@ -1,6 +1,7 @@
 import requests
 from orgao import OrgaoRN
 from servidor import ServidorRN
+from bs4 import BeautifulSoup
 
 class TransparenciaRN:
 
@@ -40,29 +41,40 @@ class TransparenciaRN:
         self.year = year
         print('Creating HTTP Session...', end='')
         self.session = requests.session()
-        print('Ok')
+        print('Ok!'
+              if self.session else 'Error creating HTTP Session. Exiting...' and exit(1))
 
         print('Acquiring token access...', end='')
         self.get_token()
-        print('Ok')
+        print(self.token[:5] + '...' + self.token[-5:] + '!'
+              if self.token != '' else 'Could not acquire access token! Exiting...' and exit(1))
         print('Finding organizations...', end='')
         self.get_orgs()
-        print('Ok')
-        print('Finding employees...', end='')
+        print('Found {}!'.format(len(self.orgs)))
+
         if not orgs:
             for _,v in self.orgs.items():
                 print(v.name + '...', end=''),
                 self.get_org_employees(v)
-                print('Ok')
+                print('Found {}!'.format())
         else:
             for org_name in orgs:
+                print(org_name + '...', end='')
                 org = self.get_org(org_name)
                 self.get_org_employees(org)
 
 
+
+
     def get_token(self):
         response = self.session.get(self.url_base)
-        self.token = response.text.split('__RequestVerificationToken')[1].split('value=')[1].split(' ')[0][1:-1]
+        
+        #self.token = response.text.split('__RequestVerificationToken')[1].split('value=')[1].split(' ')[0][1:-1]
+        for tag in BeautifulSoup(response.text, 'html.parser').find_all('input'):
+            if tag['name'] == '__RequestVerificationToken':
+                self.token = tag['value']
+                break
+    
         return self.token
 
     def get_orgs(self):
@@ -77,6 +89,8 @@ class TransparenciaRN:
 
         # print(payload)
         response = self.session.post(self.url_orgs, params=payload)
+        soap = BeautifulSoup(response.txt, 'html.parser')
+
         response_list = list(filter(lambda x: len(x) > 0, [l.lstrip() for l in response.text.split('\r\n')]))
         l = len(response_list)
         for idx in range(l):
@@ -122,9 +136,9 @@ class TransparenciaRN:
             if len(field) > 1:
                 last_page = field[1].split('">')[0]
 
+        employee_count = 0
         # Iter over pages
         for pagenum in range(1, int(last_page) + 1):
-        #for pagenum in range(1, 2):
             data = {}
             url = self.url_org_pag + str(pagenum)
             params = {
@@ -170,15 +184,17 @@ class TransparenciaRN:
                             data['Valor Líquido'],
                             org.name
                         ))
+                        employee_count += 1
 
                         n += 13 # Jump to next line in html table
 
                         if resp_lines[n-1] == '</tbody>':
                             break
+        print('Found {} {}\'s employees!'.format(employee_count, org.name))
 
     def get_org(self, s):
         return self.filter_orgs_by_str(s).pop()
-
+8
 
     def filter_orgs_by_str(self, s):
         return [self.orgs[org] for org in self.orgs.keys() if s in org]

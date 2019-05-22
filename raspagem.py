@@ -9,11 +9,12 @@ Nome do Servidor	Órgao	Cargo/Função	Carga Horária	Remuneração do Mês	Outr
 Previdência	Imposto de Renda	Redutor Art.37/CF	Outros Descontos	Valor Líquido
 """
 if __name__ == "__main__":
-	t = TransparenciaRN('Abril', '2019', ['ITEP'])
+	t = TransparenciaRN('Abril', '2019', ['ITEP', 'CIVIL']) #2491998
 
 	#for _, org in t.orgs.items():
 	#	print(org, len(org.servidores))
 
+	exit(1)
 	#itep = t.get_org('ITEP')
 
 	column_names = [
