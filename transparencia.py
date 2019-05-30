@@ -55,8 +55,8 @@ class TransparenciaRN:
         if not orgs:
             for _,v in self.orgs.items():
                 print(v.name + '...', end=''),
-                self.get_org_employees(v)
-                print('Found {}!'.format())
+
+                print('Found {}!'.format(len(self.get_org_employees(v))))
         else:
             for org_name in orgs:
                 print(org_name + '...', end='')
@@ -115,75 +115,51 @@ class TransparenciaRN:
         resp_lines = list(filter(lambda x: len(x) > 0, [l.lstrip() for l in response.text.split('\r\n')]))
 
         last_page = 1
-        for line in resp_lines:
-            field = line.split('<a href="/searh/Remuneracao/Paginados?pagina=')
-            if len(field) > 1:
-                last_page = field[1].split('">')[0]
-
-        print(last_page)
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        print(str(soup.find_all('a')[-2]))
+        soup_line = soup.find_all('a')
+        if soup_line:
+            last_page = int(str(soup_line[-2]).split('">')[0].split('=')[2])
+
 
         employee_count = 0
         # Iter over pages
-        for pagenum in range(1, int(last_page) + 1):
+        for pagenum in range(1, last_page + 1):
             data = {}
             url = self.url_org_pag + str(pagenum)
             params = {
                 'pagina': pagenum
             }
             response = self.session.get(url=url, params=params)
-            resp_lines = list(filter(lambda x: len(x) > 0, [l.lstrip() for l in response.text.split('\r\n')]))
 
-            l = len(resp_lines)
-            for n in range(l):
-                if resp_lines[n] == '<tbody>': # begin of html table
-                    n += 2
-                    while n < l:
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-                        data['Nome do Servidor'] = resp_lines[n][4:-5] # remove '<td>...</td>'
-                        data['Cargo/Função'] = resp_lines[n + 1][4:-5]
-                        data['Carga Horária'] = resp_lines[n + 2][4:-5]
-                        data['Remuneração do Mês'] = float(resp_lines[n + 3][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 3][30:-5] != '' else '0.00')
-                        data['Outras Remunerações'] = float(resp_lines[n + 4][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 4][30:-5] != '' else '0.00')
-                        data['Previdência'] = float(resp_lines[n + 5][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 5][30:-5] != '' else '0.00')
-                        data['Imposto de Reda'] = float(resp_lines[n + 6][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 6][30:-5] != '' else '0.00')
-                        data['Redutor ARt.37/CF'] = float(resp_lines[n + 7][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 7][30:-5] != '' else '0.00')
-                        data['Outros Descontos'] = float(resp_lines[n + 8][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 8][30:-5] != '' else '0.00')
-                        data['Valor Líquido'] = float(resp_lines[n + 9][30:-5].replace('.', '').replace(',', '.')
-                                                           if resp_lines[n + 9][30:-5] != '' else '0.00')
-                        # print(data)
-                        self.orgs[org.name].servidores.append(ServidorRN(
-                            data['Nome do Servidor'],
-                            data['Cargo/Função'],
-                            data['Carga Horária'],
-                            data['Remuneração do Mês'],
-                            data['Outras Remunerações'],
-                            data['Previdência'],
-                            data['Imposto de Reda'],
-                            data['Redutor ARt.37/CF'],
-                            data['Outros Descontos'],
-                            data['Valor Líquido'],
-                            org.name
-                        ))
-                        employee_count += 1
+            lines = soup.find('table').find_all('td')
+            #print(lines)
 
-                        n += 13 # Jump to next line in html table
+            for nome, o, cargo, ch, rem, outrem, prev, ir, red, outdsc, liq in zip(*[iter(lines)]*11):
+                if o.string != org.name:
+                    liq, outdsc, red, ir, prev, outrem, rem, ch, cargo = \
+                        outdsc, red, ir, prev, outrem, rem, ch, cargo, org.name
 
-                        if resp_lines[n-1] == '</tbody>':
-                            break
-        print('Found {} {}\'s employees!'.format(employee_count, org.name))
+                # s = ServidorRN(nome.string, o.string, cargo.string, ch.string,
+                # FIXME: cargo and o.string are reverted when accessing ServidorRN objects
+                s = ServidorRN(nome.string, cargo.string, o.string, ch.string,
+                                self.stof(rem.string), self.stof(outrem.string),
+                                self.stof(prev.string), self.stof(ir.string),
+                                self.stof(red.string), self.stof(outdsc.string),
+                                self.stof(liq.string))
+                self.orgs[org.name].servidores.append(s)
+
+        return self.orgs[org.name].servidores
+        #print('Found {} {}\'s employees!'.format(employee_count, org.name))
 
     def get_org(self, s):
         return self.filter_orgs_by_str(s).pop()
 
-
+    #
     def filter_orgs_by_str(self, s):
         return [self.orgs[org] for org in self.orgs.keys() if s in org]
+
+    def stof(self, s):
+        return float(s.replace('.', '').replace(',', '.'))
